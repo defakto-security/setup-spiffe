@@ -1,0 +1,60 @@
+name: "Setup SPIFFE"
+description: "Mint a SPIFFE SVID for a GitHub Actions job by attesting its OIDC token to a Defakto trust domain."
+author: "Defakto Security"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  trust-domain-id:
+    description: >-
+      Defakto trust domain ID. The Action talks to
+      `<trust-domain-id>.agent.spirl.com:443` to perform the attestation
+      handshake. Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID`
+      environment variable.
+    required: false
+  audience:
+    description: >-
+      Audience claim to request when minting the GitHub Actions OIDC token
+      that is sent as attestation evidence. The Defakto endpoint validates
+      this against its registered policy.
+    required: false
+    default: "defakto-github"
+  jwt-audience:
+    description: >-
+      Optional. If set, the Action additionally fetches a JWT-SVID with this
+      audience and exposes it via the `jwt` output and `jwt-path` file.
+      Multiple audiences can be supplied as a comma-separated list.
+    required: false
+  output-dir:
+    description: >-
+      Directory to write SVID material into. Defaults to `${RUNNER_TEMP}/spiffe`.
+      The directory is created if it does not exist.
+    required: false
+  export-env:
+    description: >-
+      When `true` (default), exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`,
+      `SPIFFE_X509_BUNDLE`, and (if applicable) `SPIFFE_JWT_SVID` env vars
+      pointing at the written files for later steps in the same job.
+    required: false
+    default: "true"
+
+outputs:
+  spiffe-id:
+    description: "The SPIFFE ID (URI) granted to this job, e.g. `spiffe://example.org/github/owner/repo`."
+  svid-cert-path:
+    description: "Filesystem path to the PEM-encoded X.509 SVID certificate chain (leaf first)."
+  svid-key-path:
+    description: "Filesystem path to the PEM-encoded PKCS#8 private key for the SVID."
+  bundle-path:
+    description: "Filesystem path to the PEM-encoded trust bundle for the SVID's trust domain."
+  expires-at:
+    description: "ISO-8601 timestamp at which the X.509 SVID expires."
+  jwt-path:
+    description: "Filesystem path to the JWT-SVID (only set when `jwt-audience` was provided)."
+  jwt:
+    description: "The raw JWT-SVID compact serialization, masked in logs (only set when `jwt-audience` was provided)."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

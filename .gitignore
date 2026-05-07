@@ -80,8 +80,10 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 .output
+
+# Note: dist/ IS committed for this repo — it is the bundled Action runtime
+# loaded by `runs.using: node20` in action.yml. Do NOT add `dist` here.
 
 # Gatsby files
 .cache/
