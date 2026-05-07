@@ -3,37 +3,9 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
   AttestingWorkloadAPIClient,
+  GithubAttestor,
   marshalX509SVID,
-  type AttestationEvidence,
-  type Attestor,
 } from "@defakto/spiffe";
-
-/**
- * Inline GitHub Actions OIDC attestor.
- *
- * Equivalent to `@defakto/spiffe`'s `GithubAttestor`, kept local so this
- * Action builds against the currently-published `@defakto/spiffe` (0.3.x).
- * Once the SDK ships `GithubAttestor`, this class can be replaced with the
- * upstream import.
- */
-class GithubAttestor implements Attestor {
-  readonly pluginName = "github";
-  readonly pluginVersion = "1.0";
-  readonly #audience: string;
-  constructor(audience: string) {
-    this.#audience = audience;
-  }
-  async collectEvidence(): Promise<AttestationEvidence> {
-    const token = await core.getIDToken(this.#audience);
-    if (!token) throw new Error("GitHub Actions OIDC fetcher returned an empty token");
-    const payload = JSON.stringify({ token });
-    return {
-      pluginName: this.pluginName,
-      pluginVersion: this.pluginVersion,
-      payload: new TextEncoder().encode(payload),
-    };
-  }
-}
 
 async function run(): Promise<void> {
   const audience = core.getInput("audience") || "defakto-github";
@@ -53,7 +25,7 @@ async function run(): Promise<void> {
 
   await fs.mkdir(outputDir, { recursive: true, mode: 0o700 });
 
-  const attestor = new GithubAttestor(audience);
+  const attestor = new GithubAttestor({ audience });
   const client = new AttestingWorkloadAPIClient({
     trustDomainId,
     attestors: [attestor],
