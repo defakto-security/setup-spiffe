@@ -36,8 +36,9 @@ async function run(): Promise<void> {
     const svid = await client.x509.getSVID();
 
     core.info(`Received X.509 SVID for ${svid.id.toString()}`);
+    const expiresAt = svid.expiresAt ?? new Date(svid.certificates[0]!.validTo);
     core.setOutput("spiffe-id", svid.id.toString());
-    core.setOutput("expires-at", svid.expiresAt.toISOString());
+    core.setOutput("expires-at", expiresAt.toISOString());
 
     const { certChainPem, privateKeyPem } = await marshalX509SVID(svid);
     const bundle = await client.x509.getBundleForTrustDomain(svid.id.trustDomain);
