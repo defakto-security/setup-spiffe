@@ -1,14 +1,14 @@
 "use strict";
-exports.id = 579;
-exports.ids = [579];
+exports.id = 803;
+exports.ids = [803];
 exports.modules = {
 
-/***/ 56579:
+/***/ 66803:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 
-var utilUtf8 = __webpack_require__(71577);
+var utilUtf8 = __webpack_require__(93353);
 
 class EventStreamSerde {
     marshaller;
@@ -58,13 +58,9 @@ class EventStreamSerde {
                     body: event.body,
                 };
             }
-            let unionMember = "";
-            for (const key in event) {
-                if (key !== "__type") {
-                    unionMember = key;
-                    break;
-                }
-            }
+            const unionMember = Object.keys(event).find((key) => {
+                return key !== "__type";
+            }) ?? "";
             const { additionalHeaders, body, eventType, explicitPayloadContentType } = this.writeEventBody(unionMember, unionSchema, event);
             const headers = {
                 ":event-type": { type: "string", value: eventType },
@@ -85,13 +81,9 @@ class EventStreamSerde {
         const memberSchemas = unionSchema.getMemberSchemas();
         const initialResponseMarker = Symbol("initialResponseMarker");
         const asyncIterable = marshaller.deserialize(response.body, async (event) => {
-            let unionMember = "";
-            for (const key in event) {
-                if (key !== "__type") {
-                    unionMember = key;
-                    break;
-                }
-            }
+            const unionMember = Object.keys(event).find((key) => {
+                return key !== "__type";
+            }) ?? "";
             const body = event[unionMember].body;
             if (unionMember === "initial-response") {
                 const dataObject = await this.deserializer.read(responseSchema, body);
@@ -167,8 +159,8 @@ class EventStreamSerde {
             if (!responseSchema) {
                 throw new Error("@smithy::core/protocols - initial-response event encountered in event stream but no response schema given.");
             }
-            for (const key in firstEvent.value) {
-                initialResponseContainer[key] = firstEvent.value[key];
+            for (const [key, value] of Object.entries(firstEvent.value)) {
+                initialResponseContainer[key] = value;
             }
         }
         return {

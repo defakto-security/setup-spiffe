@@ -1,19 +1,19 @@
 "use strict";
-exports.id = 956;
-exports.ids = [956];
+exports.id = 984;
+exports.ids = [984];
 exports.modules = {
 
-/***/ 88079:
+/***/ 34067:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.fromTokenFile = void 0;
-const client_1 = __webpack_require__(5152);
-const property_provider_1 = __webpack_require__(71238);
-const shared_ini_file_loader_1 = __webpack_require__(94964);
+const client_1 = __webpack_require__(59313);
+const property_provider_1 = __webpack_require__(3776);
+const shared_ini_file_loader_1 = __webpack_require__(5548);
 const node_fs_1 = __webpack_require__(73024);
-const fromWebToken_1 = __webpack_require__(34453);
+const fromWebToken_1 = __webpack_require__(21241);
 const ENV_TOKEN_FILE = "AWS_WEB_IDENTITY_TOKEN_FILE";
 const ENV_ROLE_ARN = "AWS_ROLE_ARN";
 const ENV_ROLE_SESSION_NAME = "AWS_ROLE_SESSION_NAME";
@@ -44,7 +44,7 @@ exports.fromTokenFile = fromTokenFile;
 
 /***/ }),
 
-/***/ 34453:
+/***/ 21241:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -88,7 +88,7 @@ const fromWebToken = (init) => async (awsIdentityProperties) => {
     const { roleArn, roleSessionName, webIdentityToken, providerId, policyArns, policy, durationSeconds } = init;
     let { roleAssumerWithWebIdentity } = init;
     if (!roleAssumerWithWebIdentity) {
-        const { getDefaultRoleAssumerWithWebIdentity } = await Promise.resolve().then(() => __importStar(__webpack_require__(1136)));
+        const { getDefaultRoleAssumerWithWebIdentity } = await Promise.resolve().then(() => __importStar(__webpack_require__(48730)));
         roleAssumerWithWebIdentity = getDefaultRoleAssumerWithWebIdentity({
             ...init.clientConfig,
             credentialProviderLogger: init.logger,
@@ -113,13 +113,13 @@ exports.fromWebToken = fromWebToken;
 
 /***/ }),
 
-/***/ 29956:
+/***/ 87984:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 
-var fromTokenFile = __webpack_require__(88079);
-var fromWebToken = __webpack_require__(34453);
+var fromTokenFile = __webpack_require__(34067);
+var fromWebToken = __webpack_require__(21241);
 
 
 

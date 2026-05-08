@@ -37,7 +37,13 @@ async function run(): Promise<void> {
   if (workloadSocketEndpoint) {
     const opts = parseSocketEndpoint(workloadSocketEndpoint);
     core.info(`Using SPIFFE Workload API at ${workloadSocketEndpoint}`);
-    client = new LocalWorkloadAPIClient(opts);
+    core.info(`Fetching GitHub OIDC token (audience="https://spirl.com") for identity-exchange-token header...`);
+    const exchangeToken = await core.getIDToken("https://spirl.com");
+    core.setSecret(exchangeToken);
+    client = new LocalWorkloadAPIClient({
+      ...opts,
+      headers: { "identity-exchange-token": exchangeToken },
+    });
   } else {
     if (!trustDomainId) {
       throw new Error(

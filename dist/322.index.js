@@ -1,20 +1,20 @@
 "use strict";
-exports.id = 566;
-exports.ids = [566];
+exports.id = 322;
+exports.ids = [322];
 exports.modules = {
 
-/***/ 40566:
+/***/ 19322:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 var __webpack_unused_export__;
 
 
-var propertyProvider = __webpack_require__(71238);
+var propertyProvider = __webpack_require__(3776);
 var url = __webpack_require__(87016);
 var buffer = __webpack_require__(20181);
 var http = __webpack_require__(58611);
-var nodeConfigProvider = __webpack_require__(55704);
-var urlParser = __webpack_require__(14494);
+var nodeConfigProvider = __webpack_require__(67665);
+var urlParser = __webpack_require__(5822);
 
 function httpRequest(options) {
     return new Promise((resolve, reject) => {
