@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@defakto/spiffe": "^0.4.0"
+    "@defakto/spiffe": "^0.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

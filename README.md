@@ -42,15 +42,27 @@ jobs:
 
 ## Inputs
 
-| Input             | Required | Default                       | Description                                                                                       |
-| ----------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `trust-domain-id` | yes¹     | —                             | Defakto trust domain. Used to construct the endpoint `<trust-domain-id>.agent.spirl.com:443`.     |
-| `audience`        | no       | `defakto-github`              | OIDC audience claim requested when minting the GitHub Actions JWT used as attestation evidence.   |
-| `jwt-audience`    | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
-| `output-dir`      | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
-| `export-env`      | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
+| Input                      | Required | Default                       | Description                                                                                       |
+| -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `trust-domain-id`          | yes¹     | —                             | Defakto trust domain. Used to construct the endpoint `<trust-domain-id>.agent.spirl.com:443`.     |
+| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set, the Workload API is used and attestation is skipped.      |
+| `audience`                 | no       | `defakto-github`              | OIDC audience claim requested when minting the GitHub Actions JWT used as attestation evidence.   |
+| `jwt-audience`             | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
+| `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
+| `export-env`               | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
 
-¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable.
+¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable. Not required when a Workload API socket is configured.
+
+² Can also be supplied via the `SPIFFE_ENDPOINT_SOCKET` environment variable. Accepts `unix:///path`, `unix://path`, `unix:path`, or a bare path.
+
+## Workload API vs. attestation
+
+The Action picks its SVID source in the following order:
+
+1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` and the `audience` input are not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
+2. **Serverless attestation** — otherwise, the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return.
+
+The Workload API path always takes precedence when configured.
 
 ## Outputs
 

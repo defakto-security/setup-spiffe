@@ -11,7 +11,19 @@ inputs:
       Defakto trust domain ID. The Action talks to
       `<trust-domain-id>.agent.spirl.com:443` to perform the attestation
       handshake. Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID`
-      environment variable.
+      environment variable. Required when no Workload API socket is
+      configured.
+    required: false
+  workload-socket-endpoint:
+    description: >-
+      Optional. SPIFFE Workload API endpoint to talk to instead of
+      performing the attestation handshake. Accepts the same forms as the
+      `SPIFFE_ENDPOINT_SOCKET` env var (`unix:///path/to/socket`,
+      `unix://path`, `unix:path`, or a bare path). When set — either via
+      this input or via `SPIFFE_ENDPOINT_SOCKET` in the environment — the
+      Action talks the standard SPIFFE Workload API and the
+      `trust-domain-id` / attestation flow is skipped. The Workload API
+      always takes precedence over the serverless attestation client.
     required: false
   audience:
     description: >-
