@@ -1,9 +1,9 @@
 "use strict";
-exports.id = 894;
-exports.ids = [894];
+exports.id = 935;
+exports.ids = [935];
 exports.modules = {
 
-/***/ 31894:
+/***/ 36935:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 // ESM COMPAT FLAG
@@ -34,7 +34,7 @@ var promises_ = __webpack_require__(51455);
 var external_node_os_ = __webpack_require__(48161);
 // EXTERNAL MODULE: external "node:fs"
 var external_node_fs_ = __webpack_require__(73024);
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/is-docker@3.0.0/node_modules/is-docker/index.js
+;// CONCATENATED MODULE: ./node_modules/is-docker/index.js
 
 
 let isDockerCached;
@@ -65,7 +65,7 @@ function isDocker() {
 	return isDockerCached;
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/is-inside-container@1.0.0/node_modules/is-inside-container/index.js
+;// CONCATENATED MODULE: ./node_modules/is-inside-container/index.js
 
 
 
@@ -90,7 +90,7 @@ function isInsideContainer() {
 	return cachedResult;
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/is-wsl@3.1.1/node_modules/is-wsl/index.js
+;// CONCATENATED MODULE: ./node_modules/is-wsl/index.js
 
 
 
@@ -128,7 +128,7 @@ const isWsl = () => {
 
 /* harmony default export */ const is_wsl = (external_node_process_.env.__IS_WSL_TEST__ ? isWsl : isWsl());
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/wsl-utils@0.1.0/node_modules/wsl-utils/index.js
+;// CONCATENATED MODULE: ./node_modules/wsl-utils/index.js
 
 
 
@@ -187,7 +187,7 @@ const powerShellPath = async () => {
 
 
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/define-lazy-prop@3.0.0/node_modules/define-lazy-prop/index.js
+;// CONCATENATED MODULE: ./node_modules/define-lazy-prop/index.js
 function defineLazyProperty(object, propertyName, valueGetter) {
 	const define = value => Object.defineProperty(object, propertyName, {value, enumerable: true, writable: true});
 
@@ -207,7 +207,7 @@ function defineLazyProperty(object, propertyName, valueGetter) {
 	return object;
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/default-browser-id@5.0.1/node_modules/default-browser-id/index.js
+;// CONCATENATED MODULE: ./node_modules/default-browser-id/index.js
 
 
 
@@ -234,7 +234,7 @@ async function defaultBrowserId() {
 	return browserId;
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/run-applescript@7.1.0/node_modules/run-applescript/index.js
+;// CONCATENATED MODULE: ./node_modules/run-applescript/index.js
 
 
 
@@ -273,14 +273,14 @@ function runAppleScriptSync(script, {humanReadableOutput = true} = {}) {
 	return stdout.trim();
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/bundle-name@4.1.0/node_modules/bundle-name/index.js
+;// CONCATENATED MODULE: ./node_modules/bundle-name/index.js
 
 
 async function bundleName(bundleId) {
 	return runAppleScript(`tell application "Finder" to set app_path to application file id "${bundleId}" as string\ntell application "System Events" to get value of property list item "CFBundleName" of property list file (app_path & ":Contents:Info.plist")`);
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/default-browser@5.5.0/node_modules/default-browser/windows.js
+;// CONCATENATED MODULE: ./node_modules/default-browser/windows.js
 
 
 
@@ -339,7 +339,7 @@ async function defaultBrowser(_execFileAsync = windows_execFileAsync) {
 	return windowsBrowserProgIds[id] ?? windowsBrowserProgIds[baseIdByDot] ?? windowsBrowserProgIds[baseIdByHyphen] ?? {name: id, id};
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/default-browser@5.5.0/node_modules/default-browser/index.js
+;// CONCATENATED MODULE: ./node_modules/default-browser/index.js
 
 
 
@@ -375,7 +375,7 @@ async function default_browser_defaultBrowser() {
 	throw new Error('Only macOS, Linux, and Windows are supported');
 }
 
-;// CONCATENATED MODULE: ../spiffe-defakto-ts/node_modules/.bun/open@10.2.0/node_modules/open/index.js
+;// CONCATENATED MODULE: ./node_modules/open/index.js
 
 
 
