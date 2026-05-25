@@ -8,8 +8,9 @@ branding:
 inputs:
   trust-domain-id:
     description: >-
-      Defakto trust domain ID. The Action talks to
-      `<trust-domain-id>.agent.spirl.com:443` to perform the attestation
+      Defakto tenant ID (e.g. `td-0000000`) — NOT the SPIFFE trust domain
+      name. Used to construct the agent endpoint
+      `<trust-domain-id>.agent.spirl.com:443` that performs the attestation
       handshake. Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID`
       environment variable. Required when no Workload API socket is
       configured.

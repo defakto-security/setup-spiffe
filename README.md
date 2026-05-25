@@ -4,8 +4,10 @@ GitHub Action that mints a [SPIFFE](https://spiffe.io) SVID for a workflow job b
 GitHub Actions OIDC token to a [Defakto](https://defakto.security) trust domain.
 
 The Action calls GitHub's OIDC endpoint to mint a fresh, signed JWT for the job, sends it as
-attestation evidence to `<trust-domain-id>.agent.spirl.com:443`, and writes the resulting X.509
-SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps.
+attestation evidence to the Defakto agent endpoint for your tenant
+(`<trust-domain-id>.agent.spirl.com:443`, where `<trust-domain-id>` is your Defakto-assigned
+identifier — e.g. `td-0000000` — not your SPIFFE trust domain name), and writes the resulting
+X.509 SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps.
 
 ## Why
 
@@ -29,21 +31,19 @@ jobs:
       - uses: defakto-security/setup-spiffe@v0
         id: spiffe
         with:
-          trust-domain-id: example.org
-          jwt-svid-audience: my-service   # optional — also fetch a JWT-SVID
+          trust-domain-id: td-0000000       # your Defakto tenant ID
+          jwt-svid-audience: my-service     # optional — also fetch a JWT-SVID
 
       - run: |
           echo "Got SPIFFE ID: ${{ steps.spiffe.outputs.spiffe-id }}"
-          openssl x509 -in "$SPIFFE_X509_SVID" -noout -text
-          curl --cert "$SPIFFE_X509_SVID" --key "$SPIFFE_X509_KEY" --cacert "$SPIFFE_X509_BUNDLE" \
-               https://api.example.org/whoami
+          openssl x509 -in "$SPIFFE_X509_SVID" -noout -subject -issuer -dates
 ```
 
 ## Inputs
 
 | Input                      | Required | Default                       | Description                                                                                       |
 | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `trust-domain-id`          | yes¹     | —                             | Defakto trust domain. Used to construct the endpoint `<trust-domain-id>.agent.spirl.com:443`.     |
+| `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. |
 | `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set, the Workload API is used and attestation is skipped.      |
 | `jwt-svid-audience`        | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
