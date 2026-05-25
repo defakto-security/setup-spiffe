@@ -4,35 +4,61 @@ import * as path from "node:path";
 import {
   AttestingWorkloadAPIClient,
   GithubAttestor,
+  LocalWorkloadAPIClient,
   marshalX509SVID,
 } from "@defakto/spiffe";
+import type { ClientOptions } from "@defakto/spiffe";
+
+type WorkloadClient = LocalWorkloadAPIClient | AttestingWorkloadAPIClient;
+
+function parseSocketEndpoint(raw: string): ClientOptions {
+  const value = raw.trim();
+  if (value.startsWith("unix:///")) return { transport: "unix", socketPath: value.slice(7) };
+  if (value.startsWith("unix://")) return { transport: "unix", socketPath: value.slice(7) };
+  if (value.startsWith("unix:")) return { transport: "unix", socketPath: value.slice(5) };
+  return { transport: "unix", socketPath: value };
+}
 
 async function run(): Promise<void> {
   const audience = core.getInput("audience") || "defakto-github";
   const trustDomainId =
     core.getInput("trust-domain-id") || process.env["DEFAKTO_TRUST_DOMAIN_ID"] || "";
+  const workloadSocketEndpoint =
+    core.getInput("workload-socket-endpoint") || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
   const jwtAudienceRaw = core.getInput("jwt-audience");
   const outputDir =
     core.getInput("output-dir") ||
     path.join(process.env["RUNNER_TEMP"] || process.cwd(), "spiffe");
   const exportEnv = (core.getInput("export-env") || "true").toLowerCase() !== "false";
 
-  if (!trustDomainId) {
-    throw new Error(
-      "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required",
-    );
-  }
-
   await fs.mkdir(outputDir, { recursive: true, mode: 0o700 });
 
-  const attestor = new GithubAttestor({ audience });
-  const client = new AttestingWorkloadAPIClient({
-    trustDomainId,
-    attestors: [attestor],
-  });
+  let client: WorkloadClient;
+  if (workloadSocketEndpoint) {
+    const opts = parseSocketEndpoint(workloadSocketEndpoint);
+    core.info(`Using SPIFFE Workload API at ${workloadSocketEndpoint}`);
+    core.info(`Fetching GitHub OIDC token (audience="https://spirl.com") for identity-exchange-token header...`);
+    const exchangeToken = await core.getIDToken("https://spirl.com");
+    core.setSecret(exchangeToken);
+    client = new LocalWorkloadAPIClient({
+      ...opts,
+      headers: { "identity-exchange-token": exchangeToken },
+    });
+  } else {
+    if (!trustDomainId) {
+      throw new Error(
+        "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required when no Workload API socket is configured (set `workload-socket-endpoint` or SPIFFE_ENDPOINT_SOCKET to use a Workload API instead).",
+      );
+    }
+    core.info(`Attesting GitHub OIDC token (audience="${audience}") to ${trustDomainId}...`);
+    const attestor = new GithubAttestor({ audience });
+    client = new AttestingWorkloadAPIClient({
+      trustDomainId,
+      attestors: [attestor],
+    });
+  }
 
   try {
-    core.info(`Attesting GitHub OIDC token (audience="${audience}") to ${trustDomainId}...`);
     const svid = await client.x509.getSVID();
 
     core.info(`Received X.509 SVID for ${svid.id.toString()}`);
