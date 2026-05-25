@@ -19,13 +19,14 @@ function parseSocketEndpoint(raw: string): ClientOptions {
   return { transport: "unix", socketPath: value };
 }
 
+const OIDC_AUDIENCE = "defakto-github";
+
 async function run(): Promise<void> {
-  const audience = core.getInput("audience") || "defakto-github";
   const trustDomainId =
     core.getInput("trust-domain-id") || process.env["DEFAKTO_TRUST_DOMAIN_ID"] || "";
   const workloadSocketEndpoint =
     core.getInput("workload-socket-endpoint") || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
-  const jwtAudienceRaw = core.getInput("jwt-audience");
+  const jwtAudienceRaw = core.getInput("jwt-svid-audience");
   const outputDir =
     core.getInput("output-dir") ||
     path.join(process.env["RUNNER_TEMP"] || process.cwd(), "spiffe");
@@ -50,8 +51,8 @@ async function run(): Promise<void> {
         "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required when no Workload API socket is configured (set `workload-socket-endpoint` or SPIFFE_ENDPOINT_SOCKET to use a Workload API instead).",
       );
     }
-    core.info(`Attesting GitHub OIDC token (audience="${audience}") to ${trustDomainId}...`);
-    const attestor = new GithubAttestor({ audience });
+    core.info(`Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`);
+    const attestor = new GithubAttestor({ audience: OIDC_AUDIENCE });
     client = new AttestingWorkloadAPIClient({
       trustDomainId,
       attestors: [attestor],
@@ -80,9 +81,9 @@ async function run(): Promise<void> {
       fs.writeFile(bundlePath, bundlePem, { mode: 0o600 }),
     ]);
 
-    core.setOutput("svid-cert-path", certPath);
-    core.setOutput("svid-key-path", keyPath);
-    core.setOutput("bundle-path", bundlePath);
+    core.setOutput("x509-svid-path", certPath);
+    core.setOutput("x509-key-path", keyPath);
+    core.setOutput("x509-bundle-path", bundlePath);
 
     if (exportEnv) {
       core.exportVariable("SPIFFE_X509_SVID", certPath);
@@ -102,8 +103,8 @@ async function run(): Promise<void> {
       const jwtPath = path.join(outputDir, "svid.jwt");
       await fs.writeFile(jwtPath, jwt.token, { mode: 0o600 });
 
-      core.setOutput("jwt", jwt.token);
-      core.setOutput("jwt-path", jwtPath);
+      core.setOutput("jwt-svid", jwt.token);
+      core.setOutput("jwt-svid-path", jwtPath);
       if (exportEnv) {
         core.exportVariable("SPIFFE_JWT_SVID", jwtPath);
       }

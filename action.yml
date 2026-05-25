@@ -25,18 +25,11 @@ inputs:
       `trust-domain-id` / attestation flow is skipped. The Workload API
       always takes precedence over the serverless attestation client.
     required: false
-  audience:
-    description: >-
-      Audience claim to request when minting the GitHub Actions OIDC token
-      that is sent as attestation evidence. The Defakto endpoint validates
-      this against its registered policy.
-    required: false
-    default: "defakto-github"
-  jwt-audience:
+  jwt-svid-audience:
     description: >-
       Optional. If set, the Action additionally fetches a JWT-SVID with this
-      audience and exposes it via the `jwt` output and `jwt-path` file.
-      Multiple audiences can be supplied as a comma-separated list.
+      audience and exposes it via the `jwt-svid` output and `jwt-svid-path`
+      file. Multiple audiences can be supplied as a comma-separated list.
     required: false
   output-dir:
     description: >-
@@ -54,18 +47,18 @@ inputs:
 outputs:
   spiffe-id:
     description: "The SPIFFE ID (URI) granted to this job, e.g. `spiffe://example.org/github/owner/repo`."
-  svid-cert-path:
+  x509-svid-path:
     description: "Filesystem path to the PEM-encoded X.509 SVID certificate chain (leaf first)."
-  svid-key-path:
+  x509-key-path:
     description: "Filesystem path to the PEM-encoded PKCS#8 private key for the SVID."
-  bundle-path:
+  x509-bundle-path:
     description: "Filesystem path to the PEM-encoded trust bundle for the SVID's trust domain."
   expires-at:
     description: "ISO-8601 timestamp at which the X.509 SVID expires."
-  jwt-path:
-    description: "Filesystem path to the JWT-SVID (only set when `jwt-audience` was provided)."
-  jwt:
-    description: "The raw JWT-SVID compact serialization, masked in logs (only set when `jwt-audience` was provided)."
+  jwt-svid-path:
+    description: "Filesystem path to the JWT-SVID (only set when `jwt-svid-audience` was provided)."
+  jwt-svid:
+    description: "The raw JWT-SVID compact serialization, masked in logs (only set when `jwt-svid-audience` was provided)."
 
 runs:
   using: "node20"
