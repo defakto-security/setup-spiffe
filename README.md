@@ -50,7 +50,7 @@ jobs:
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
 | `export-env`               | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
 
-¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable. Not required when a Workload API socket is configured.
+¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable. Not required when using the Workload API (i.e. `mode: auto` with a socket configured, or `mode: workload-api`); required whenever the Action falls back to or is forced into serverless attestation.
 
 ² Can also be supplied via the `SPIFFE_ENDPOINT_SOCKET` environment variable. Accepts `unix:///path`, `unix://path`, `unix:path`, or a bare path.
 
@@ -58,8 +58,8 @@ jobs:
 
 The Action picks its SVID source in the following order:
 
-1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` is not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
-2. **Serverless attestation** — otherwise, the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return.
+1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set and `mode` is not `serverless`, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` is not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
+2. **Serverless attestation** — otherwise (no socket configured, or `mode: serverless`), the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return. `trust-domain-id` is required in this case.
 
 By default (`mode: auto`) the Workload API takes precedence when a socket is
 configured. To override that precedence, set `mode` explicitly:
