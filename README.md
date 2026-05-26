@@ -4,8 +4,10 @@ GitHub Action that mints a [SPIFFE](https://spiffe.io) SVID for a workflow job b
 GitHub Actions OIDC token to a [Defakto](https://defakto.security) trust domain.
 
 The Action calls GitHub's OIDC endpoint to mint a fresh, signed JWT for the job, sends it as
-attestation evidence to `<trust-domain-id>.agent.spirl.com:443`, and writes the resulting X.509
-SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps.
+attestation evidence to the Defakto agent endpoint for your tenant
+(`<trust-domain-id>.agent.spirl.com:443`, where `<trust-domain-id>` is your Defakto-assigned
+identifier — e.g. `td-0000000` — not your SPIFFE trust domain name), and writes the resulting
+X.509 SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps.
 
 ## Why
 
@@ -29,25 +31,21 @@ jobs:
       - uses: defakto-security/setup-spiffe@v0
         id: spiffe
         with:
-          trust-domain-id: example.org
-          audience: defakto-github      # default; must match the policy registered with Defakto
-          jwt-audience: my-service      # optional — also fetch a JWT-SVID
+          trust-domain-id: td-0000000       # your Defakto tenant ID
+          jwt-svid-audience: my-service     # optional — also fetch a JWT-SVID
 
       - run: |
           echo "Got SPIFFE ID: ${{ steps.spiffe.outputs.spiffe-id }}"
-          openssl x509 -in "$SPIFFE_X509_SVID" -noout -text
-          curl --cert "$SPIFFE_X509_SVID" --key "$SPIFFE_X509_KEY" --cacert "$SPIFFE_X509_BUNDLE" \
-               https://api.example.org/whoami
+          openssl x509 -in "$SPIFFE_X509_SVID" -noout -subject -issuer -dates
 ```
 
 ## Inputs
 
 | Input                      | Required | Default                       | Description                                                                                       |
 | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `trust-domain-id`          | yes¹     | —                             | Defakto trust domain. Used to construct the endpoint `<trust-domain-id>.agent.spirl.com:443`.     |
+| `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. |
 | `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set, the Workload API is used and attestation is skipped.      |
-| `audience`                 | no       | `defakto-github`              | OIDC audience claim requested when minting the GitHub Actions JWT used as attestation evidence.   |
-| `jwt-audience`             | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
+| `jwt-svid-audience`        | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
 | `export-env`               | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
 
@@ -59,22 +57,22 @@ jobs:
 
 The Action picks its SVID source in the following order:
 
-1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` and the `audience` input are not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
+1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` is not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
 2. **Serverless attestation** — otherwise, the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return.
 
 The Workload API path always takes precedence when configured.
 
 ## Outputs
 
-| Output             | Description                                                                       |
-| ------------------ | --------------------------------------------------------------------------------- |
-| `spiffe-id`        | The SPIFFE ID URI granted, e.g. `spiffe://example.org/github/owner/repo`.         |
-| `svid-cert-path`   | Path to the PEM-encoded X.509 SVID certificate chain (leaf first).                |
-| `svid-key-path`    | Path to the PEM-encoded PKCS#8 private key for the SVID.                          |
-| `bundle-path`      | Path to the PEM-encoded trust bundle for the SVID's trust domain.                 |
-| `expires-at`       | ISO-8601 timestamp at which the X.509 SVID expires.                               |
-| `jwt`              | Raw JWT-SVID (only when `jwt-audience` was set). Masked in logs via `setSecret`.  |
-| `jwt-path`         | Path to the file containing the JWT-SVID (only when `jwt-audience` was set).      |
+| Output             | Description                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `spiffe-id`        | The SPIFFE ID URI granted, e.g. `spiffe://example.org/github/owner/repo`.             |
+| `x509-svid-path`   | Path to the PEM-encoded X.509 SVID certificate chain (leaf first).                    |
+| `x509-key-path`    | Path to the PEM-encoded PKCS#8 private key for the SVID.                              |
+| `x509-bundle-path` | Path to the PEM-encoded trust bundle for the SVID's trust domain.                     |
+| `expires-at`       | ISO-8601 timestamp at which the X.509 SVID expires.                                   |
+| `jwt-svid`         | Raw JWT-SVID (only when `jwt-svid-audience` was set). Masked in logs via `setSecret`. |
+| `jwt-svid-path`    | Path to the file containing the JWT-SVID (only when `jwt-svid-audience` was set).     |
 
 ## Environment variables exported (when `export-env: true`)
 
