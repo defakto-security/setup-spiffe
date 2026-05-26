@@ -1,0 +1,48 @@
+name: Setup SPIFFE — example
+
+# Manual-only: avoids firing on every PR/push to this repo, where no
+# real Defakto tenant ID is configured.
+on:
+  workflow_dispatch:
+    inputs:
+      trust-domain-id:
+        description: "Defakto tenant ID (e.g. td-0000000)"
+        required: true
+        default: "td-0000000"
+
+permissions:
+  id-token: write   # required — the Action mints a GitHub OIDC token
+  contents: read
+
+jobs:
+  mint-and-inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `uses: ./` runs the Action from this checkout, so the example
+      # exercises the in-repo code rather than a pinned release tag.
+      - uses: ./
+        id: spiffe
+        with:
+          trust-domain-id: ${{ inputs.trust-domain-id }}
+          jwt-svid-audience: example-audience
+
+      - name: Inspect the SVID
+        run: |
+          echo "SPIFFE ID:  ${{ steps.spiffe.outputs.spiffe-id }}"
+          echo "Expires at: ${{ steps.spiffe.outputs.expires-at }}"
+
+          echo
+          echo "--- X.509 SVID ---"
+          openssl x509 -in "$SPIFFE_X509_SVID" -noout \
+            -subject -issuer -dates -ext subjectAltName
+
+          echo
+          echo "--- Chain verification ---"
+          openssl verify -CAfile "$SPIFFE_X509_BUNDLE" "$SPIFFE_X509_SVID"
+
+          # JWT-SVID is at $SPIFFE_JWT_SVID — masked in logs, so we do
+          # not print its contents here.
+          echo
+          echo "JWT-SVID written to: $SPIFFE_JWT_SVID"
