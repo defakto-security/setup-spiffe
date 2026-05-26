@@ -44,7 +44,7 @@ jobs:
 | Input                      | Required | Default                       | Description                                                                                       |
 | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
 | `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. |
-| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set (and `mode` is `auto`), the Workload API is used and attestation is skipped. |
+| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. In `auto` mode, when set, the Action uses the Workload API and skips attestation; required when `mode` is `workload-api`. |
 | `mode`                     | no       | `auto`                        | `auto` \| `serverless` \| `workload-api`. Forces the SVID source. See [Workload API vs. attestation](#workload-api-vs-attestation). |
 | `jwt-svid-audience`        | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
