@@ -44,7 +44,8 @@ jobs:
 | Input                      | Required | Default                       | Description                                                                                       |
 | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
 | `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. |
-| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set, the Workload API is used and attestation is skipped.      |
+| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. When set (and `mode` is `auto`), the Workload API is used and attestation is skipped. |
+| `mode`                     | no       | `auto`                        | `auto` \| `serverless` \| `workload-api`. Forces the SVID source. See [Workload API vs. attestation](#workload-api-vs-attestation). |
 | `jwt-svid-audience`        | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
 | `export-env`               | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
@@ -60,7 +61,18 @@ The Action picks its SVID source in the following order:
 1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` is not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
 2. **Serverless attestation** — otherwise, the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return.
 
-The Workload API path always takes precedence when configured.
+By default (`mode: auto`) the Workload API takes precedence when a socket is
+configured. To override that precedence, set `mode` explicitly:
+
+- `mode: auto` (default) — Workload API if a socket is configured, otherwise
+  serverless attestation.
+- `mode: serverless` — always perform serverless attestation. Any
+  `SPIFFE_ENDPOINT_SOCKET` in the environment is ignored. Useful on runners
+  where a socket is exported by the environment but a specific job wants the
+  attestation flow. Setting `workload-socket-endpoint` as an action input
+  alongside `mode: serverless` is rejected as contradictory.
+- `mode: workload-api` — require a Workload API socket; fail fast if none is
+  configured.
 
 ## Outputs
 

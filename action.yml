@@ -13,7 +13,7 @@ inputs:
       `<trust-domain-id>.agent.spirl.com:443` that performs the attestation
       handshake. Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID`
       environment variable. Required when no Workload API socket is
-      configured.
+      configured, and required when `mode: serverless` is set.
     required: false
   workload-socket-endpoint:
     description: >-
@@ -21,11 +21,24 @@ inputs:
       performing the attestation handshake. Accepts the same forms as the
       `SPIFFE_ENDPOINT_SOCKET` env var (`unix:///path/to/socket`,
       `unix://path`, `unix:path`, or a bare path). When set — either via
-      this input or via `SPIFFE_ENDPOINT_SOCKET` in the environment — the
-      Action talks the standard SPIFFE Workload API and the
-      `trust-domain-id` / attestation flow is skipped. The Workload API
-      always takes precedence over the serverless attestation client.
+      this input or via `SPIFFE_ENDPOINT_SOCKET` in the environment — and
+      `mode` is `auto` (the default), the Action talks the standard SPIFFE
+      Workload API and the `trust-domain-id` / attestation flow is skipped.
+      Use `mode: serverless` to force the attestation flow even when a
+      socket is configured in the environment.
     required: false
+  mode:
+    description: >-
+      Optional. Selects how the Action obtains an SVID. One of: `auto`
+      (default) — use the Workload API if `workload-socket-endpoint` or
+      `SPIFFE_ENDPOINT_SOCKET` is set, otherwise fall back to serverless
+      attestation; `serverless` — always perform serverless attestation,
+      ignoring any `SPIFFE_ENDPOINT_SOCKET` in the environment (useful on
+      runners where a socket is exported but the job wants attestation);
+      `workload-api` — require a Workload API socket and fail if none is
+      configured.
+    required: false
+    default: "auto"
   jwt-svid-audience:
     description: >-
       Optional. If set, the Action additionally fetches a JWT-SVID with this

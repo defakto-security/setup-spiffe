@@ -24,8 +24,29 @@ const OIDC_AUDIENCE = "defakto-github";
 async function run(): Promise<void> {
   const trustDomainId =
     core.getInput("trust-domain-id") || process.env["DEFAKTO_TRUST_DOMAIN_ID"] || "";
+  const workloadSocketInput = core.getInput("workload-socket-endpoint");
   const workloadSocketEndpoint =
-    core.getInput("workload-socket-endpoint") || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
+    workloadSocketInput || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
+  const modeRaw = (core.getInput("mode") || "auto").toLowerCase();
+  if (modeRaw !== "auto" && modeRaw !== "serverless" && modeRaw !== "workload-api") {
+    throw new Error(
+      `\`mode\` must be one of: auto, serverless, workload-api (got "${modeRaw}")`,
+    );
+  }
+  const mode = modeRaw as "auto" | "serverless" | "workload-api";
+
+  if (mode === "serverless" && workloadSocketInput) {
+    throw new Error(
+      "`mode: serverless` is incompatible with a non-empty `workload-socket-endpoint` input. " +
+        "Remove the input, or set `mode: workload-api` / `mode: auto` to use the Workload API.",
+    );
+  }
+  if (mode === "workload-api" && !workloadSocketEndpoint) {
+    throw new Error(
+      "`mode: workload-api` requires `workload-socket-endpoint` (or SPIFFE_ENDPOINT_SOCKET) to be set.",
+    );
+  }
+
   const jwtAudienceRaw = core.getInput("jwt-svid-audience");
   const outputDir =
     core.getInput("output-dir") ||
@@ -34,8 +55,11 @@ async function run(): Promise<void> {
 
   await fs.mkdir(outputDir, { recursive: true, mode: 0o700 });
 
+  const useWorkloadAPI =
+    mode === "workload-api" || (mode === "auto" && workloadSocketEndpoint !== "");
+
   let client: WorkloadClient;
-  if (workloadSocketEndpoint) {
+  if (useWorkloadAPI) {
     const opts = parseSocketEndpoint(workloadSocketEndpoint);
     core.info(`Using SPIFFE Workload API at ${workloadSocketEndpoint}`);
     core.info(`Fetching GitHub OIDC token (audience="https://spirl.com") for identity-exchange-token header...`);
@@ -46,9 +70,14 @@ async function run(): Promise<void> {
       headers: { "identity-exchange-token": exchangeToken },
     });
   } else {
+    if (mode === "serverless" && process.env["SPIFFE_ENDPOINT_SOCKET"]) {
+      core.info(
+        "`mode: serverless` is set; ignoring SPIFFE_ENDPOINT_SOCKET in the environment.",
+      );
+    }
     if (!trustDomainId) {
       throw new Error(
-        "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required when no Workload API socket is configured (set `workload-socket-endpoint` or SPIFFE_ENDPOINT_SOCKET to use a Workload API instead).",
+        "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required for serverless attestation.",
       );
     }
     core.info(`Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`);
