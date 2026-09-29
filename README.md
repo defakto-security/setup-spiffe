@@ -7,7 +7,8 @@ The Action calls GitHub's OIDC endpoint to mint a fresh, signed JWT for the job,
 attestation evidence to the Defakto agent endpoint for your tenant
 (`<trust-domain-id>.agent.spirl.com:443`, where `<trust-domain-id>` is your Defakto-assigned
 identifier — e.g. `td-0000000` — not your SPIFFE trust domain name), and writes the resulting
-X.509 SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps.
+X.509 SVID (and optionally a JWT-SVID) to the runner filesystem for use by later steps. Set
+`server-address` instead of `trust-domain-id` to attest against a self-hosted trust-domain server.
 
 ## Why
 
@@ -43,23 +44,26 @@ jobs:
 
 | Input                      | Required | Default                       | Description                                                                                       |
 | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. |
-| `workload-socket-endpoint` | no²      | —                             | SPIFFE Workload API endpoint. In `auto` mode, when set, the Action uses the Workload API and skips attestation; required when `mode` is `workload-api`. |
+| `trust-domain-id`          | yes¹     | —                             | Defakto tenant ID (e.g. `td-0000000`) — not the SPIFFE trust domain. Used to construct the agent endpoint `<trust-domain-id>.agent.spirl.com:443`. Ignored if `server-address` is set. |
+| `server-address`           | no³      | —                             | Address (`host` or `host:port`, port defaults to `443`) of a self-hosted Defakto attestation server. Takes precedence over `trust-domain-id`. Only used for serverless attestation; ignored when `mode: workload-api`. |
+| `workload-socket-endpoint` | no⁴      | —                             | SPIFFE Workload API endpoint. In `auto` mode, when set, the Action uses the Workload API and skips attestation; required when `mode` is `workload-api`. |
 | `mode`                     | no       | `auto`                        | `auto` \| `serverless` \| `workload-api`. Forces the SVID source. See [Workload API vs. attestation](#workload-api-vs-attestation). |
 | `jwt-svid-audience`        | no       | —                             | If set, the Action also fetches a JWT-SVID for this audience. Comma-separated for multiple.       |
 | `output-dir`               | no       | `${RUNNER_TEMP}/spiffe`       | Directory to write SVID material into. Created if missing, with `0700` perms.                     |
 | `export-env`               | no       | `true`                        | When `true`, exports `SPIFFE_X509_SVID`, `SPIFFE_X509_KEY`, `SPIFFE_X509_BUNDLE` env vars.        |
 
-¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable. Not required when using the Workload API (i.e. `mode: auto` with a socket configured, or `mode: workload-api`); required whenever the Action falls back to or is forced into serverless attestation.
+¹ Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable. Not required when using the Workload API (i.e. `mode: auto` with a socket configured, or `mode: workload-api`) or when `server-address` is set; required whenever the Action falls back to or is forced into serverless attestation against a Defakto-hosted trust domain.
 
-² Can also be supplied via the `SPIFFE_ENDPOINT_SOCKET` environment variable. Accepts `unix:///path`, `unix://path`, `unix:path`, or a bare path.
+³ Can also be supplied via the `DEFAKTO_SERVER_ADDRESS` environment variable. Only used for serverless attestation (ignored in Workload API mode).
+
+⁴ Can also be supplied via the `SPIFFE_ENDPOINT_SOCKET` environment variable. Accepts `unix:///path`, `unix://path`, `unix:path`, or a bare path.
 
 ## Workload API vs. attestation
 
 The Action picks its SVID source in the following order:
 
 1. **Workload API** — if `workload-socket-endpoint` (or `SPIFFE_ENDPOINT_SOCKET`) is set and `mode` is not `serverless`, the Action talks the standard SPIFFE Workload API gRPC protocol over the given Unix socket. `trust-domain-id` is not used in this mode. The Action still mints a GitHub Actions OIDC token (audience `https://spirl.com`) and sends it to the Workload API as the `identity-exchange-token` gRPC header on every request, so `id-token: write` permission is still required.
-2. **Serverless attestation** — otherwise (no socket configured, or `mode: serverless`), the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `<trust-domain-id>.agent.spirl.com:443`, and receives an SVID in return. `trust-domain-id` is required in this case.
+2. **Serverless attestation** — otherwise (no socket configured, or `mode: serverless`), the Action falls back to `AttestingWorkloadAPIClient`: it mints a GitHub Actions OIDC token, sends it as evidence to `server-address` (self-hosted) or `<trust-domain-id>.agent.spirl.com:443` (Defakto-hosted), and receives an SVID in return. One of `trust-domain-id` or `server-address` is required in this case.
 
 By default (`mode: auto`) the Workload API takes precedence when a socket is
 configured. To override that precedence, set `mode` explicitly:

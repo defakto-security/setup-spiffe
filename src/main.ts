@@ -24,6 +24,8 @@ const OIDC_AUDIENCE = "defakto-github";
 async function run(): Promise<void> {
   const trustDomainId =
     core.getInput("trust-domain-id") || process.env["DEFAKTO_TRUST_DOMAIN_ID"] || "";
+  const serverAddress =
+    core.getInput("server-address") || process.env["DEFAKTO_SERVER_ADDRESS"] || "";
   const workloadSocketInput = core.getInput("workload-socket-endpoint");
   const workloadSocketEndpoint =
     workloadSocketInput || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
@@ -60,6 +62,11 @@ async function run(): Promise<void> {
 
   let client: WorkloadClient;
   if (useWorkloadAPI) {
+    if (serverAddress) {
+      core.info(
+        "Using the Workload API; ignoring `server-address` (only used for serverless attestation).",
+      );
+    }
     const opts = parseSocketEndpoint(workloadSocketEndpoint);
     core.info(`Using SPIFFE Workload API at ${workloadSocketEndpoint}`);
     core.info(`Fetching GitHub OIDC token (audience="https://spirl.com") for identity-exchange-token header...`);
@@ -75,15 +82,23 @@ async function run(): Promise<void> {
         "`mode: serverless` is set; ignoring SPIFFE_ENDPOINT_SOCKET in the environment.",
       );
     }
-    if (!trustDomainId) {
+    if (!trustDomainId && !serverAddress) {
       throw new Error(
-        "`trust-domain-id` input (or DEFAKTO_TRUST_DOMAIN_ID env var) is required for serverless attestation.",
+        "`trust-domain-id` (Defakto-hosted, or DEFAKTO_TRUST_DOMAIN_ID env var) or " +
+          "`server-address` (self-hosted, or DEFAKTO_SERVER_ADDRESS env var) is required for serverless attestation.",
       );
     }
-    core.info(`Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`);
+    core.info(
+      serverAddress
+        ? `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to self-hosted server ${serverAddress}...`
+        : `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`,
+    );
+    if (serverAddress) {
+      process.env["DEFAKTO_SERVER_ADDRESS"] = serverAddress;
+    }
     const attestor = new GithubAttestor({ audience: OIDC_AUDIENCE });
     client = new AttestingWorkloadAPIClient({
-      trustDomainId,
+      trustDomainId: trustDomainId || undefined,
       attestors: [attestor],
     });
   }
