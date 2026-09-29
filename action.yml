@@ -9,11 +9,22 @@ inputs:
   trust-domain-id:
     description: >-
       Defakto tenant ID (e.g. `td-0000000`) — NOT the SPIFFE trust domain
-      name. Used to construct the agent endpoint
-      `<trust-domain-id>.agent.spirl.com:443` that performs the attestation
-      handshake. Can also be supplied via the `DEFAKTO_TRUST_DOMAIN_ID`
-      environment variable. Required when no Workload API socket is
-      configured, and required when `mode: serverless` is set.
+      name. For Defakto-hosted trust domains, used to construct the agent
+      endpoint `<trust-domain-id>.agent.spirl.com:443` that performs the
+      attestation handshake. Ignored if `server-address` is set. Can also be
+      supplied via the `DEFAKTO_TRUST_DOMAIN_ID` environment variable.
+      Required when no Workload API socket or `server-address` is configured,
+      and required when `mode: serverless` is set.
+    required: false
+  server-address:
+    description: >-
+      Optional. Address (`host` or `host:port`, port defaults to `443`) of a
+      self-hosted Defakto attestation server to use instead of the
+      Defakto-hosted `<trust-domain-id>.agent.spirl.com` endpoint. Takes
+      precedence over `trust-domain-id`. Can also be supplied via the
+      `DEFAKTO_SERVER_ADDRESS` environment variable. Only used for serverless
+      attestation (ignored when `mode: workload-api`, or in `mode: auto` when
+      a Workload API socket is used).
     required: false
   workload-socket-endpoint:
     description: >-
