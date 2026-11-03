@@ -26,6 +26,16 @@ inputs:
       attestation (ignored when `mode: workload-api`, or in `mode: auto` when
       a Workload API socket is used).
     required: false
+  server-insecure:
+    description: >-
+      Optional. When `true`, connects to `server-address` in plaintext
+      (`insecureSkipTls` on the attestation transport) instead of TLS. For a
+      self-hosted server with no TLS termination in front of it — never set
+      this against a Defakto-hosted trust domain or a server-address you
+      don't control, since the connection carries the GitHub OIDC token and
+      the issued SVID in the clear. Ignored unless `server-address` is set.
+    required: false
+    default: "false"
   workload-socket-endpoint:
     description: >-
       Optional. SPIFFE Workload API endpoint to talk to instead of
