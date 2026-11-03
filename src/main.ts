@@ -121,6 +121,14 @@ async function run(): Promise<void> {
         : `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`,
     );
     const attestor = new GithubAttestor({ audience: OIDC_AUDIENCE });
+    // Temporary diagnostic: the server's rejection is a generic "unauthenticated" with no detail
+    // on which check failed, so confirm here whether evidence actually gets collected and is
+    // non-empty before the RPC call even happens.
+    const debugEvidence = await attestor.collectEvidence();
+    core.info(
+      `[debug] attestor evidence: pluginName=${debugEvidence.pluginName} ` +
+        `pluginVersion=${debugEvidence.pluginVersion} payloadBytes=${debugEvidence.payload.length}`,
+    );
     client = new AttestingWorkloadAPIClient({
       trustDomainId: trustDomainId || undefined,
       // An explicit transport overrides DEFAKTO_SERVER_ADDRESS resolution, which always assumes
