@@ -19,6 +19,29 @@ function parseSocketEndpoint(raw: string): ClientOptions {
   return { transport: "unix", socketPath: value };
 }
 
+// Same host:port parsing @defakto/spiffe's own DEFAKTO_SERVER_ADDRESS resolution uses
+// internally (URL-based, port defaults to 443, IPv6 bracket handling) — reimplemented here
+// because it isn't part of the package's public surface, so we can add insecureSkipTls, which
+// isn't exposed through server-address/DEFAKTO_SERVER_ADDRESS at all.
+function parseServerAddress(
+  value: string,
+  insecureSkipTls: boolean,
+): Extract<ClientOptions, { transport: "tcp" }> {
+  let url: URL;
+  try {
+    url = new URL(`https://${value}`);
+  } catch {
+    throw new Error(`Invalid server-address "${value}": could not parse as host or host:port`);
+  }
+  if (!url.hostname) {
+    throw new Error(`Invalid server-address "${value}": missing host`);
+  }
+  const needsBrackets = url.hostname.includes(":") && !url.hostname.startsWith("[");
+  const address = needsBrackets ? `[${url.hostname}]` : url.hostname;
+  const port = url.port ? parseInt(url.port, 10) : 443;
+  return { transport: "tcp", address, port, insecureSkipTls };
+}
+
 const OIDC_AUDIENCE = "defakto-github";
 
 async function run(): Promise<void> {
@@ -26,6 +49,7 @@ async function run(): Promise<void> {
     core.getInput("trust-domain-id") || process.env["DEFAKTO_TRUST_DOMAIN_ID"] || "";
   const serverAddress =
     core.getInput("server-address") || process.env["DEFAKTO_SERVER_ADDRESS"] || "";
+  const serverInsecure = (core.getInput("server-insecure") || "false").toLowerCase() === "true";
   const workloadSocketInput = core.getInput("workload-socket-endpoint");
   const workloadSocketEndpoint =
     workloadSocketInput || process.env["SPIFFE_ENDPOINT_SOCKET"] || "";
@@ -88,17 +112,29 @@ async function run(): Promise<void> {
           "`server-address` (self-hosted, or DEFAKTO_SERVER_ADDRESS env var) is required for serverless attestation.",
       );
     }
+    if (serverInsecure && !serverAddress) {
+      throw new Error("`server-insecure` requires `server-address` to be set.");
+    }
     core.info(
       serverAddress
-        ? `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to self-hosted server ${serverAddress}...`
+        ? `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to self-hosted server ${serverAddress}${serverInsecure ? " (plaintext, server-insecure)" : ""}...`
         : `Attesting GitHub OIDC token (audience="${OIDC_AUDIENCE}") to ${trustDomainId}...`,
     );
-    if (serverAddress) {
-      process.env["DEFAKTO_SERVER_ADDRESS"] = serverAddress;
-    }
     const attestor = new GithubAttestor({ audience: OIDC_AUDIENCE });
+    // Temporary diagnostic: the server's rejection is a generic "unauthenticated" with no detail
+    // on which check failed, so confirm here whether evidence actually gets collected and is
+    // non-empty before the RPC call even happens.
+    const debugEvidence = await attestor.collectEvidence();
+    core.info(
+      `[debug] attestor evidence: pluginName=${debugEvidence.pluginName} ` +
+        `pluginVersion=${debugEvidence.pluginVersion} payloadBytes=${debugEvidence.payload.length}`,
+    );
     client = new AttestingWorkloadAPIClient({
       trustDomainId: trustDomainId || undefined,
+      // An explicit transport overrides DEFAKTO_SERVER_ADDRESS resolution, which always assumes
+      // TLS: server-insecure is the only way to reach a self-hosted server with no TLS
+      // termination in front of it.
+      transport: serverAddress ? parseServerAddress(serverAddress, serverInsecure) : undefined,
       attestors: [attestor],
     });
   }
